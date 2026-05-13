@@ -1,0 +1,52 @@
+{
+  "features": [
+    "amount_ngn",
+    "time_since_last_transaction",
+    "transaction_hour",
+    "channel_risk_score",
+    "is_night_transaction"
+  ],
+  "missing_features": [
+    "avg_transaction_amount",
+    "account_age_days",
+    "transaction_velocity",
+    "transactions_last_1h",
+    "transactions_last_24h",
+    "behavioral_risk_score",
+    "shared_device_count",
+    "shared_ip_count",
+    "device_risk_score",
+    "location_risk_score",
+    "merchant_risk_score",
+    "overall_risk_score",
+    "persona_risk_score",
+    "is_new_device",
+    "geo_anomaly_flag"
+  ],
+  "rule_thresholds": {
+    "amount_high": 3594868.831,
+    "velocity_high": null,
+    "tx_1h_high": null,
+    "shared_device_high": null,
+    "shared_ip_high": null
+  },
+  "weights": {
+    "anomaly": 0.4,
+    "cluster": 0.3,
+    "rule": 0.3
+  },
+  "allow_max": 30.0,
+  "challenge_max": 60.0,
+  "cluster_distance_min": 0.07528145091921531,
+  "cluster_distance_max": 9.935737676439448,
+  "anomaly_score_min": -0.10964407186632524,
+  "anomaly_score_max": 0.264736234822732,
+  "dbscan_enabled": false,
+  "dbscan_eps": null,
+  "dbscan_penalty": 10.0,
+  "metrics": {
+    "roc_auc": 0.5311740834374578,
+    "pr_auc": 0.03849658754210427,
+    "f1_at_block_threshold": 2.2268615170494085e-05
+  }
+}
