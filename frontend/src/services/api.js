@@ -1,11 +1,17 @@
 // Central API service for Customer Risk Profiling System
 const API_BASE = '/api';
+const transactionOrigin = (import.meta.env.VITE_TRANSACTION_SERVICE_URL || '').replace(/\/+$/, '');
+const riskOrigin = (import.meta.env.VITE_RISK_SERVICE_URL || '').replace(/\/+$/, '');
+
+function serviceOrigin(endpoint) {
+    return endpoint === '/risk' || endpoint.startsWith('/risk/') ? riskOrigin : transactionOrigin;
+}
 
 /**
  * Generic fetch wrapper with error handling
  */
 async function fetchJson(endpoint, options = {}) {
-    const url = `${API_BASE}${endpoint}`;
+    const url = `${serviceOrigin(endpoint)}${API_BASE}${endpoint}`;
     const defaultHeaders = {
         'Content-Type': 'application/json',
     };
@@ -106,8 +112,14 @@ export const api = {
     // ---------------------------------------------------------------------------
     async getGatewayHealth() {
         try {
-            const res = await fetch('/actuator/health');
-            return await res.json();
+            // Render calls the services directly; local development uses the gateway.
+            const origins = [...new Set([transactionOrigin, riskOrigin])];
+            const results = await Promise.all(origins.map(async origin => {
+                const res = await fetch(`${origin}/actuator/health`);
+                if (!res.ok) throw new Error('Service health check failed');
+                return res.json();
+            }));
+            return { status: results.every(result => result.status === 'UP') ? 'UP' : 'DOWN' };
         } catch {
             return { status: 'DOWN' };
         }

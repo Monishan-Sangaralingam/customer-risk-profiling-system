@@ -1,5 +1,7 @@
 # AI-Based Customer Profiling for Fraud Risk Prediction
 
+For the free evaluation deployment, see [Deploy on Render](doc/RENDER.md).
+
 A microservices-based system for **customer-level fraud risk prediction** using behavioral analytics and machine learning.  
 Instead of focusing only on single suspicious transactions, this project evaluates the **customer’s overall behavior over time** to generate a dynamic fraud risk score. :contentReference[oaicite:0]{index=0}
 

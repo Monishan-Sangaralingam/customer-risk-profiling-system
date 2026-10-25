@@ -40,6 +40,11 @@ for loc in MODEL_LOCATIONS:
 
 if model is None:
     print("[ML Service] WARNING: No .pkl model file found in search paths!")
+    if os.getenv("REQUIRE_MODEL", "false").lower() == "true":
+        raise RuntimeError("The trained model could not be loaded; refusing to serve heuristic predictions.")
+elif hasattr(model, "set_params"):
+    # Keep inference within the CPU/memory budget of a free instance.
+    model.set_params(**{name: 1 for name in model.get_params() if name.endswith("n_jobs")})
 
 FEATURE_NAMES = [
     "txCount30d",

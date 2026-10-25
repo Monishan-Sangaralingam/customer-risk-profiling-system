@@ -1,6 +1,6 @@
 package com.fraud.transaction_service.service;
 
-import com.fraud.risk_score_service.dto.RiskResponseDTO;
+import com.fraud.transaction_service.dto.RiskResponseDTO;
 import com.fraud.transaction_service.client.RiskScoreClient;
 import com.fraud.transaction_service.entity.Transaction;
 import com.fraud.transaction_service.Channel.TransactionStatus;

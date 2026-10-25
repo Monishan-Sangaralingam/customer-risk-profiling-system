@@ -1,0 +1,14 @@
+.git
+.venv
+.venv-*
+**/node_modules
+**/target
+**/__pycache__
+**/.env
+**/.env.*
+**/*.csv
+**/*.zip
+**/*.ipynb
+**/*.key
+**/*.pem
+.local

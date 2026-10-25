@@ -1,0 +1,108 @@
+# Deploy this Blueprint from your fork's branch containing this file.
+# Public URL values are entered after the initial service creation; see doc/RENDER.md.
+services:
+  - type: web
+    name: riskguard-transactions
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./backend/transaction-service/Dockerfile
+    dockerContext: ./backend/transaction-service
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: render
+      - key: DB_HOST
+        fromDatabase:
+          name: riskguard-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: riskguard-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: riskguard-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: riskguard-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: riskguard-db
+          property: password
+      - key: RISK_SERVICE_URL
+        sync: false
+
+  - type: web
+    name: riskguard-risk
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./backend/risk-score-service/Dockerfile
+    dockerContext: ./backend/risk-score-service
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: render
+      - key: DB_HOST
+        fromDatabase:
+          name: riskguard-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: riskguard-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: riskguard-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: riskguard-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: riskguard-db
+          property: password
+      - key: TRANSACTION_SERVICE_URL
+        sync: false
+      - key: ML_SERVICE_URL
+        sync: false
+
+  - type: web
+    name: riskguard-ml
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./backend/ml-service/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+
+  - type: web
+    name: riskguard-demo
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: NODE_VERSION
+        value: 22.14.0
+      - key: VITE_TRANSACTION_SERVICE_URL
+        sync: false
+      - key: VITE_RISK_SERVICE_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+databases:
+  - name: riskguard-db
+    plan: free
+    region: singapore
+    postgresMajorVersion: "17"
+    databaseName: riskguard
+    user: riskguard
+    ipAllowList: []
