@@ -29,7 +29,9 @@ public class TransactionResponse {
     private TransactionStatus transactionStatus;
     private String declineReason;
 
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern="yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     private LocalDateTime transactionDatetime;
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern="yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     private LocalDateTime createdAt;
 
     private Integer riskScore;

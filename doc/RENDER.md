@@ -125,6 +125,18 @@ Official references: [Blueprint specification](https://render.com/docs/blueprint
 
 ## Developer verification
 
+### Timestamps
+
+Transaction, creation and risk-calculation timestamps are stored as UTC in the
+existing timestamp columns. API responses include `Z` to identify UTC. Incoming
+transaction timestamps with an explicit offset are normalized to UTC; legacy
+timestamps without an offset are interpreted as UTC for compatibility with the
+existing Render data. The frontend displays all times in `Asia/Colombo`
+(UTC+05:30), independently of the evaluator's device timezone. No database-wide
+time shift or schema migration is required for the existing UTC Render records.
+
+Deploy the frontend and both Java services for this timestamp update.
+
 Frontend: `cd frontend`, `npm ci`, then `npm run build`.
 
 Each Java Dockerfile builds its service independently with Maven. For a local

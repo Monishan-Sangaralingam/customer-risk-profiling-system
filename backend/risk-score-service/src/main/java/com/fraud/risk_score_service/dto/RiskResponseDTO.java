@@ -15,6 +15,7 @@ public class RiskResponseDTO {
     private Long customerId;
     private Integer score;             // 0-100
     private String category;           // LOW/MEDIUM/HIGH
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern="yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     private LocalDateTime calculatedAt;
 
     private List<String> reasons;

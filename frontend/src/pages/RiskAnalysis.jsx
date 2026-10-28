@@ -1,3 +1,4 @@
+import { formatDateTime } from '../services/time';
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Brain, Database, Activity, Lock, TrendingUp, Search, RefreshCw, AlertTriangle, CheckCircle2, ChevronRight, Zap } from 'lucide-react';
 import api from '../services/api';
@@ -161,7 +162,7 @@ const RiskAnalysis = () => {
                                 </div>
 
                                 <div className="text-[11px] text-gray-400 border-t pt-3 mt-4">
-                                    Calculated: {new Date(riskResult.calculatedAt).toLocaleString()}
+                                    Calculated: {formatDateTime(riskResult.calculatedAt)}
                                 </div>
                             </div>
 

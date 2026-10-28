@@ -1,3 +1,4 @@
+import { timestampMillis, formatTime, formatDate, formatDateTime } from '../../services/time';
 import React, { useCallback, useEffect, useState } from 'react';
 import { X, ShieldAlert, Activity, RefreshCw, AlertCircle, Clock, Smartphone, MapPin, Building2, CheckCircle2 } from 'lucide-react';
 import api from '../../services/api';
@@ -24,7 +25,7 @@ const CustomerDetailModal = ({ customerId, isOpen, onClose, onRiskRecalculated }
             if (riskRes.status === 'fulfilled') setRiskData(riskRes.value);
             if (historyRes.status === 'fulfilled') setHistory(historyRes.value || []);
             if (featureRes.status === 'fulfilled') setFeatures(featureRes.value);
-            if (txRes.status === 'fulfilled') setTransactions([...(txRes.value || [])].sort((a, b) => new Date(b.transactionDatetime) - new Date(a.transactionDatetime)));
+            if (txRes.status === 'fulfilled') setTransactions([...(txRes.value || [])].sort((a, b) => timestampMillis(b.transactionDatetime) - timestampMillis(a.transactionDatetime)));
         } catch (err) {
             console.error('Failed to load customer details:', err);
         } finally {
@@ -159,7 +160,7 @@ const CustomerDetailModal = ({ customerId, isOpen, onClose, onRiskRecalculated }
                                             Category: <span className={riskData?.category === 'High' ? 'text-red-600' : riskData?.category === 'Medium' ? 'text-amber-600' : 'text-emerald-600'}>{riskData?.category || 'Low'}</span>
                                         </div>
                                         <div className="text-xs text-gray-500">
-                                            Last Updated: {riskData?.calculatedAt ? new Date(riskData.calculatedAt).toLocaleString() : 'Recent'}
+                                            Last Updated: {riskData?.calculatedAt ? formatDateTime(riskData.calculatedAt) : 'Recent'}
                                         </div>
                                     </div>
                                 </div>
@@ -231,7 +232,7 @@ const CustomerDetailModal = ({ customerId, isOpen, onClose, onRiskRecalculated }
                                                 <span className="text-sm font-bold text-gray-900 flex items-center gap-1.5 mt-0.5">
                                                     <Clock className="w-4 h-4 text-blue-600 shrink-0" />
                                                     {transactions && transactions.length > 0 && transactions[0].transactionDatetime
-                                                        ? `${new Date(transactions[0].transactionDatetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} • ${new Date(transactions[0].transactionDatetime).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })}`
+                                                        ? `${formatTime(transactions[0].transactionDatetime)} • ${formatDate(transactions[0].transactionDatetime)}`
                                                         : 'No recorded transactions'}
                                                 </span>
                                             </div>
@@ -276,10 +277,10 @@ const CustomerDetailModal = ({ customerId, isOpen, onClose, onRiskRecalculated }
                                                         </span>
                                                         <div className="mt-1.5 flex items-center justify-end gap-1 text-xs font-semibold text-gray-800">
                                                             <Clock className="w-3.5 h-3.5 text-blue-600" />
-                                                            <span>{tx.transactionDatetime ? new Date(tx.transactionDatetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'N/A'}</span>
+                                                            <span>{tx.transactionDatetime ? formatTime(tx.transactionDatetime) : 'N/A'}</span>
                                                         </div>
                                                         <div className="text-[11px] text-gray-400">
-                                                            {tx.transactionDatetime ? new Date(tx.transactionDatetime).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' }) : ''}
+                                                            {tx.transactionDatetime ? formatDate(tx.transactionDatetime) : ''}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -311,7 +312,7 @@ const CustomerDetailModal = ({ customerId, isOpen, onClose, onRiskRecalculated }
                                                         </div>
                                                     </div>
                                                     <div className="text-right text-gray-400">
-                                                        {new Date(h.calculatedAt).toLocaleString()}
+                                                        {formatDateTime(h.calculatedAt)}
                                                     </div>
                                                 </div>
                                             ))}

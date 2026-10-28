@@ -138,7 +138,8 @@ public class RiskScoreServiceImpl implements RiskScoreService {
         }
         current.setScore(score);
         current.setCategory(category);
-        current.setUpdatedAt(LocalDateTime.now());
+        LocalDateTime calculatedAt=LocalDateTime.now(java.time.ZoneOffset.UTC);
+        current.setUpdatedAt(calculatedAt);
 
         riskScoreRepository.save(current);
 
@@ -152,7 +153,7 @@ public class RiskScoreServiceImpl implements RiskScoreService {
         history.setCategory(category);
         history.setPreviousScore(preScore);
         history.setPreviousCategory(preCategory);
-        history.setCalculatedAt(LocalDateTime.now());
+        history.setCalculatedAt(calculatedAt);
 
         history.setTrigger_type(trigger == null ? "TRANSACTION" : trigger);
         history.setAlertTriggered(movedUp);

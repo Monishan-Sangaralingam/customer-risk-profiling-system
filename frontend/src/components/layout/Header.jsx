@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Bell, Menu } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
+import { TIME_ZONE_LABEL } from '../../services/time';
 
 export default function Header({ menuOpen, menuButton, onToggleMenu }) {
     const [status, setStatus] = useState('CHECKING');
@@ -21,6 +22,7 @@ export default function Header({ menuOpen, menuButton, onToggleMenu }) {
             <span className="hidden sm:inline text-sm font-semibold">CeylonBank RiskGuard AI</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+            <span title={TIME_ZONE_LABEL} className="hidden md:inline text-xs text-slate-500">Sri Lanka · UTC+05:30</span>
             <span role="status" className={`text-xs font-semibold rounded-full px-2.5 py-1.5 ${status === 'ONLINE' ? 'bg-green-50 text-green-800' : status === 'CHECKING' ? 'bg-slate-100 text-slate-700' : 'bg-red-50 text-red-800'}`}>APIs: {status}</span>
             <Link to="/alerts" aria-label="Fraud alerts" className="p-2"><Bell className="w-5 h-5" /></Link>
         </div>

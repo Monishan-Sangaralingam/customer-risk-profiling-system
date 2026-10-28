@@ -19,7 +19,7 @@ public class FeatureService {
     private final CustomerAggDailyRepository customerAggDailyRepository;
 
     /*public FeatureDTO buildFeature(Long customerId){
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(java.time.ZoneOffset.UTC);
         LocalDate d30 = today.minusDays(30);
         LocalDate d7 = today.minusDays(7);
         LocalDate d14 = today.minusDays(14);
@@ -165,7 +165,7 @@ public class FeatureService {
 
     public FeatureDTO buildFeature(Long customerId) {
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(java.time.ZoneOffset.UTC);
         LocalDate d30 = today.minusDays(30);
         LocalDate d7 = today.minusDays(7);
         LocalDate d14 = today.minusDays(14);

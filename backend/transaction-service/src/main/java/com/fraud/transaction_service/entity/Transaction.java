@@ -33,6 +33,7 @@ public class Transaction {
     private Long customerId;   // FK
 
     @Column(name = "transaction_datetime", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern="yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     private LocalDateTime transactionDatetime;
 
     @Column(name = "amount", nullable = false)
@@ -62,6 +63,7 @@ public class Transaction {
     private String declineReason;
 
     @Column(name = "created_at")
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern="yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     private LocalDateTime createdAt;
 
     private Integer riskScore;
@@ -69,8 +71,8 @@ public class Transaction {
 
     @PrePersist  //JPA lifecycle callback.
     public void prePersist() {
-        if (createdAt == null) createdAt = LocalDateTime.now();
-        if (transactionDatetime == null) transactionDatetime = LocalDateTime.now();
+        if (createdAt == null) createdAt = com.fraud.transaction_service.util.UtcTime.now();
+        if (transactionDatetime == null) transactionDatetime = com.fraud.transaction_service.util.UtcTime.now();
         if (transactionStatus == null) transactionStatus = TransactionStatus.valueOf(String.valueOf(TransactionStatus.PENDING));
     }
 }

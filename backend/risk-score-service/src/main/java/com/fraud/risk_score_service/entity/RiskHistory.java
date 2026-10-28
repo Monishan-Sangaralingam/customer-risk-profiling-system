@@ -31,6 +31,7 @@ public class RiskHistory {
     private String previousCategory;
 
     @Column(nullable = false)
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern="yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     private LocalDateTime calculatedAt;
 
     @Column(name = "trigger_type", nullable = false, length = 32)

@@ -39,7 +39,7 @@ def seed(transactions_url, risk_url, ml_url):
 
     existing = call(transactions_url, "/api/transactions")
     markers = {tx.get("merchantCode") for tx in existing}
-    now = datetime.now(timezone.utc).replace(tzinfo=None, microsecond=0)
+    now = datetime.now(timezone.utc).replace(microsecond=0)
     for customer_id in (9001, 9002, 9003):
         for day in (12, 9, 6, 3, 0):
             marker = f"DEMO-{customer_id}-{day}"

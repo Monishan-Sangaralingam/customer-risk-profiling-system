@@ -1,3 +1,4 @@
+import { formatDateTime } from '../services/time';
 import { useEffect, useState } from 'react';
 import api from '../services/api';
 import { clearSession, getSession } from '../services/session';
@@ -57,7 +58,7 @@ export default function Settings() {
             <button disabled={busy} className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50">{busy ? 'Saving…' : 'Save settings'}</button>
         </form>)}
         {tab === 'Security' && <section className="bg-white border rounded-xl p-5 space-y-5">
-            <div className="text-sm space-y-2"><h2 className="font-semibold">Your account</h2><p>{session?.user.name}</p><p>{session?.user.email}</p><p>Session expires: {session ? new Date(session.expiresAt).toLocaleString() : 'Signed out'}</p></div>
+            <div className="text-sm space-y-2"><h2 className="font-semibold">Your account</h2><p>{session?.user.name}</p><p>{session?.user.email}</p><p>Session expires: {session ? formatDateTime(session.expiresAt) : 'Signed out'}</p></div>
             <form onSubmit={changePassword} className="space-y-4 max-w-sm">
                 <h3 className="font-semibold">Change password</h3>
                 <label className="block text-sm">Current password<input type="password" autoComplete="current-password" value={currentPassword} required maxLength={128} onChange={e => setCurrentPassword(e.target.value)} className="block w-full border rounded-lg p-2 mt-1" /></label>

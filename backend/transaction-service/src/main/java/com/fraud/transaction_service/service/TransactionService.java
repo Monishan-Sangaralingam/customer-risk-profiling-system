@@ -12,6 +12,7 @@ import com.fraud.transaction_service.repository.TransactionRepository;
 import com.fraud.transaction_service.dto.*;
 
 import java.time.LocalDateTime;
+import com.fraud.transaction_service.util.UtcTime;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -27,6 +28,12 @@ public class TransactionService {
     //Add Risk Score Service
     public TransactionResponse create(TransactionRequest request) {
 
+        LocalDateTime transactionTime;
+        try { transactionTime = UtcTime.parse(request.getTransactionDatetime()); }
+        catch (IllegalArgumentException error) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,"Use an ISO 8601 transaction datetime, preferably with Z or a UTC offset");
+        }
+
         try {
             // 1. Build transaction first
             Transaction ts = Transaction.builder()
@@ -38,8 +45,8 @@ public class TransactionService {
                     .deviceCode(request.getDeviceCode())
                     .location(request.getLocation())
                     .transactionStatus(TransactionStatus.PENDING)
-                    .transactionDatetime(request.getTransactionDatetime())
-                    .createdAt(LocalDateTime.now())
+                    .transactionDatetime(transactionTime)
+                    .createdAt(UtcTime.now())
                     .build();
 
             // 2. Save transaction first

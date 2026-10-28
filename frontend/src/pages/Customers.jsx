@@ -1,3 +1,4 @@
+import { timestampMillis, formatTime, formatDate, dateKey } from '../services/time';
 import React, { useEffect, useState } from 'react';
 import { Search, Filter, Eye, RefreshCw, Download, ShieldAlert, Plus, ArrowUpDown, Clock } from 'lucide-react';
 import CustomerDetailModal from '../components/modals/CustomerDetailModal';
@@ -38,7 +39,7 @@ const Customers = () => {
                 }
                 txByCustomer[cid].count += 1;
                 txByCustomer[cid].totalAmount += parseFloat(tx.amount || 0);
-                if (!txByCustomer[cid].lastTxDate || new Date(tx.transactionDatetime) > new Date(txByCustomer[cid].lastTxDate)) {
+                if (!txByCustomer[cid].lastTxDate || timestampMillis(tx.transactionDatetime) > timestampMillis(txByCustomer[cid].lastTxDate)) {
                     txByCustomer[cid].lastTxDate = tx.transactionDatetime;
                 }
             });
@@ -154,7 +155,7 @@ const Customers = () => {
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement('a');
         link.setAttribute('href', encodedUri);
-        link.setAttribute('download', `customer_risk_profiles_${new Date().toISOString().slice(0, 10)}.csv`);
+        link.setAttribute('download', `customer_risk_profiles_${dateKey()}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -299,10 +300,10 @@ const Customers = () => {
                                                 <div>
                                                     <div className="font-semibold text-gray-800 flex items-center gap-1">
                                                         <Clock className="w-3 h-3 text-blue-600" />
-                                                        {new Date(customer.lastActivity).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        {formatTime(customer.lastActivity)}
                                                     </div>
                                                     <div className="text-[11px] text-gray-400">
-                                                        {new Date(customer.lastActivity).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                        {formatDate(customer.lastActivity)}
                                                     </div>
                                                 </div>
                                             ) : 'N/A'}

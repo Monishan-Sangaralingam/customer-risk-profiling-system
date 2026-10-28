@@ -1,3 +1,4 @@
+import { formatTime, formatDate, dateKey, TIME_ZONE_LABEL } from '../services/time';
 import React, { useEffect, useState } from 'react';
 import { Users, ShieldCheck, Activity, AlertOctagon, ArrowUpRight, Clock, Plus, RefreshCw, CheckCircle2 } from 'lucide-react';
 import StatsCard from '../components/dashboard/StatsCard';
@@ -65,10 +66,9 @@ const Dashboard = () => {
     const timelineByDate = {};
     transactions.forEach(t => {
         if (!t.transactionDatetime) return;
-        const d = new Date(t.transactionDatetime);
-        const dayLabel = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        const dayLabel = dateKey(t.transactionDatetime);
         if (!timelineByDate[dayLabel]) {
-            timelineByDate[dayLabel] = { name: dayLabel, low: 0, medium: 0, high: 0, total: 0 };
+            timelineByDate[dayLabel] = { name: formatDate(t.transactionDatetime, { year: undefined }), low: 0, medium: 0, high: 0, total: 0 };
         }
         if (t.transactionStatus === 'DECLINED') {
             timelineByDate[dayLabel].high += 1;
@@ -79,7 +79,7 @@ const Dashboard = () => {
         }
         timelineByDate[dayLabel].total += 1;
     });
-    const timelineData = Object.values(timelineByDate);
+    const timelineData = Object.entries(timelineByDate).sort(([a], [b]) => a.localeCompare(b)).map(([, value]) => value);
 
     const stats = [
         {
@@ -120,7 +120,7 @@ const Dashboard = () => {
     return (
         <div className="space-y-6">
             {error && <p role="alert" className="p-3 text-red-700 bg-red-50 rounded-lg">{error}</p>}
-            <p className="text-xs text-slate-500">Last refreshed: {lastRefreshed.toLocaleTimeString()}</p>
+            <p className="text-xs text-slate-500">Last refreshed: {formatTime(lastRefreshed)} · {TIME_ZONE_LABEL}</p>
             {/* Top Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
@@ -246,10 +246,10 @@ const Dashboard = () => {
                                                 <div>
                                                     <div className="font-semibold text-gray-800 flex items-center gap-1">
                                                         <Clock className="w-3 h-3 text-blue-600" />
-                                                        {new Date(tx.transactionDatetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                                        {formatTime(tx.transactionDatetime)}
                                                     </div>
                                                     <div className="text-[11px] text-gray-400">
-                                                        {new Date(tx.transactionDatetime).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                        {formatDate(tx.transactionDatetime)}
                                                     </div>
                                                 </div>
                                             ) : 'N/A'}
