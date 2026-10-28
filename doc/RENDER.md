@@ -64,13 +64,16 @@ services to wake:
 - `ML_URL/health`: `status` is `UP` and **`model_loaded` is `true`**.
 - `TRANSACTION_URL/actuator/health`: `status` is `UP`.
 - `RISK_URL/actuator/health`: `status` is `UP`.
-- `TRANSACTION_URL/api/transactions`: initially `[]`.
-- `RISK_URL/api/risk`: initially `[]`.
+- Sign up through the application, then check the transactions and risk pages.
+  Data endpoints now require a valid account session; anonymous requests return 401.
 
 From a local terminal in this repository, run the following (replace all URLs):
 
 ```powershell
-python scripts/seed_demo.py --transactions https://YOUR-TRANSACTIONS.onrender.com --risk https://YOUR-RISK.onrender.com --ml https://YOUR-ML.onrender.com
+$credential = Get-Credential -Message 'Enter your registered application email and password'
+$env:RISKGUARD_PASSWORD = $credential.GetNetworkCredential().Password
+python scripts/seed_demo.py --email $credential.UserName --transactions https://YOUR-TRANSACTIONS.onrender.com --risk https://YOUR-RISK.onrender.com --ml https://YOUR-ML.onrender.com
+Remove-Item Env:RISKGUARD_PASSWORD
 ```
 
 The script uses only the Python standard library. It inserts 15 synthetic
@@ -82,15 +85,21 @@ and check the resulting customer risk scores. Exact risk categories are determin
 by the trained model, not forced by the script. Data dates are set relative to the
 time the script runs; seed close to the evaluation so they stay in the 30-day window.
 
-Open the **riskguard-demo static site URL**, sign in using the demo form, and
+Open the **riskguard-demo static site URL**, create an account, sign in, and
 verify the dashboard, customer details, risk recalculation, and a new transaction.
 Reload `/customers` directly to confirm the SPA rewrite works. Share this static
 site URL with evaluators. After deployment, your computer can be switched off.
 
 ## Evaluation limits and troubleshooting
 
-- This is a synthetic-data demo. The existing browser login does not implement
-  backend authentication. Do not upload actual customer information.
+- Accounts, hashed passwords, expiring/revocable sessions, alert resolutions and
+  settings are stored in PostgreSQL. Existing simulated logins are invalid after
+  this update; each evaluator must create an account. Registered analysts share
+  this demo's customer portfolio and application settings.
+- Deploy both Java services and the frontend together. No additional Render
+  environment variables are required. Hibernate adds the new tables and nullable
+  transaction score columns without deleting existing transaction data.
+- Use synthetic customer information for evaluation.
 - Free web services sleep after 15 idle minutes. Open all three health URLs before
   presenting; let the ML service wake first to avoid the risk service's existing
   heuristic fallback. The app is not guaranteed to wake instantly for an evaluator.

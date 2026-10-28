@@ -10,7 +10,8 @@ public class RiskChangeDetector {
     }
 
     private int rank(String c) {
-        return switch (c) {
+        if(c==null)return 0;
+        return switch (c.toUpperCase(java.util.Locale.ROOT)) {
             case "LOW" -> 1;
             case "MEDIUM" -> 2;
             case "HIGH" -> 3;

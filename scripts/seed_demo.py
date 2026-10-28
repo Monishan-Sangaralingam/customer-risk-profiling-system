@@ -4,16 +4,22 @@ No extra Python packages required. Run --help for usage.
 """
 import argparse
 import json
+import os
 from datetime import datetime, timedelta, timezone
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
+AUTHORIZATION = {}
+
 
 def call(base, path, payload=None):
+    headers = {"Content-Type": "application/json"}
+    if base.rstrip("/") in AUTHORIZATION:
+        headers["Authorization"] = "Bearer " + AUTHORIZATION[base.rstrip("/")]
     request = Request(
         base.rstrip("/") + path,
         data=json.dumps(payload).encode() if payload is not None else None,
-        headers={"Content-Type": "application/json"},
+        headers=headers,
     )
     try:
         with urlopen(request, timeout=240) as response:
@@ -65,5 +71,13 @@ if __name__ == "__main__":
     parser.add_argument("--transactions", required=True, help="Transaction service public URL (no /api suffix)")
     parser.add_argument("--risk", required=True, help="Risk service public URL (no /api suffix)")
     parser.add_argument("--ml", required=True, help="ML service public URL")
+    parser.add_argument("--email", required=True, help="Email of an account registered in the application")
+    parser.add_argument("--password-env", default="RISKGUARD_PASSWORD", help="Environment variable containing the account password")
     args = parser.parse_args()
+    password = os.environ.get(args.password_env)
+    if not password:
+        parser.error(f"Set {args.password_env} to your account password")
+    session = call(args.transactions, "/api/auth/login", {"email": args.email, "password": password})
+    for base in (args.transactions, args.risk):
+        AUTHORIZATION[base.rstrip("/")] = session["token"]
     seed(args.transactions, args.risk, args.ml)

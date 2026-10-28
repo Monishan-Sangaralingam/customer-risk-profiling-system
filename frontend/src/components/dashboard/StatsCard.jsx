@@ -1,7 +1,8 @@
 import React from 'react';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
-const StatsCard = ({ title, value, change, changeType, icon: Icon }) => {
+const StatsCard = ({ title, value, change, changeType, icon }) => {
+    const Icon = icon;
     return (
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
             <div className="flex justify-between items-start">
@@ -25,7 +26,6 @@ const StatsCard = ({ title, value, change, changeType, icon: Icon }) => {
                 >
                     {change}
                 </span>
-                <span className="text-sm text-gray-500 ml-1">vs last month</span>
             </div>
         </div>
     );

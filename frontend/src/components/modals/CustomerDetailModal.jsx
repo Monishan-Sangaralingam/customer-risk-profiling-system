@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { X, ShieldAlert, Activity, RefreshCw, AlertCircle, Clock, Smartphone, MapPin, Building2, CheckCircle2 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -11,13 +11,7 @@ const CustomerDetailModal = ({ customerId, isOpen, onClose, onRiskRecalculated }
     const [calculating, setCalculating] = useState(false);
     const [activeTab, setActiveTab] = useState('overview');
 
-    useEffect(() => {
-        if (!isOpen || !customerId) return;
-
-        loadCustomerData();
-    }, [isOpen, customerId]);
-
-    const loadCustomerData = async () => {
+    const loadCustomerData = useCallback(async () => {
         setLoading(true);
         try {
             const [riskRes, historyRes, featureRes, txRes] = await Promise.allSettled([
@@ -30,13 +24,17 @@ const CustomerDetailModal = ({ customerId, isOpen, onClose, onRiskRecalculated }
             if (riskRes.status === 'fulfilled') setRiskData(riskRes.value);
             if (historyRes.status === 'fulfilled') setHistory(historyRes.value || []);
             if (featureRes.status === 'fulfilled') setFeatures(featureRes.value);
-            if (txRes.status === 'fulfilled') setTransactions(txRes.value || []);
+            if (txRes.status === 'fulfilled') setTransactions([...(txRes.value || [])].sort((a, b) => new Date(b.transactionDatetime) - new Date(a.transactionDatetime)));
         } catch (err) {
             console.error('Failed to load customer details:', err);
         } finally {
             setLoading(false);
         }
-    };
+    }, [customerId]);
+
+    useEffect(() => {
+        if (isOpen && customerId) loadCustomerData();
+    }, [isOpen, customerId, loadCustomerData]);
 
     const handleCalculateRisk = async () => {
         setCalculating(true);
@@ -309,7 +307,7 @@ const CustomerDetailModal = ({ customerId, isOpen, onClose, onRiskRecalculated }
                                                             <div className="font-semibold text-gray-900">
                                                                 Category: <span className={h.category === 'High' ? 'text-red-600' : h.category === 'Medium' ? 'text-amber-600' : 'text-emerald-600'}>{h.category}</span>
                                                             </div>
-                                                            <div className="text-gray-400">Trigger: {h.trigger_type || 'TRANSACTION'}</div>
+                                                            <div className="text-gray-400">Trigger: {h.triggerType || 'Not recorded'}</div>
                                                         </div>
                                                     </div>
                                                     <div className="text-right text-gray-400">

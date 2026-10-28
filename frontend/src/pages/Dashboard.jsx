@@ -7,9 +7,13 @@ import QuickActions from '../components/dashboard/QuickActions';
 import NewTransactionModal from '../components/modals/NewTransactionModal';
 import CustomerDetailModal from '../components/modals/CustomerDetailModal';
 import api from '../services/api';
+import { buildAlerts } from '../services/alerts';
+import ServiceHealth from '../components/layout/ServiceHealth';
 
 const Dashboard = () => {
     const [riskScores, setRiskScores] = useState([]);
+    const [alerts, setAlerts] = useState([]);
+    const [error, setError] = useState('');
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
@@ -20,19 +24,14 @@ const Dashboard = () => {
     const loadDashboardData = async () => {
         try {
             setLoading(true);
-            const [scoresRes, txsRes] = await Promise.allSettled([
-                api.getAllRiskScores(),
-                api.getAllTransactions(),
-            ]);
-
-            const scores = scoresRes.status === 'fulfilled' ? (scoresRes.value || []) : [];
-            const txs = txsRes.status === 'fulfilled' ? (txsRes.value || []) : [];
-
+            setError('');
+            const [scores, txs, settings, statuses] = await Promise.all([api.getAllRiskScores(), api.getAllTransactions(), api.getSettings(), api.getAlertStatuses()]);
+            setAlerts(buildAlerts(scores, txs, settings, statuses).filter(item => item.status !== 'Resolved').map(item => ({ ...item, message: item.title, status: item.priority })));
             setRiskScores(scores);
             setTransactions(txs);
             setLastRefreshed(new Date());
         } catch (err) {
-            console.error('Failed to load dashboard data:', err);
+            setError(err.message);
         } finally {
             setLoading(false);
         }
@@ -82,31 +81,11 @@ const Dashboard = () => {
     });
     const timelineData = Object.values(timelineByDate);
 
-    // Generate alerts from high-risk customers & declined txs
-    const alerts = [
-        ...highRiskProfiles.map(h => ({
-            id: `risk-${h.customerId}`,
-            customerId: h.customerId,
-            riskScore: h.score,
-            message: `Elevated behavioral risk score detected (${h.score}/100)`,
-            time: h.updatedAt ? new Date(h.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently',
-            status: 'CRITICAL',
-        })),
-        ...declinedTransactions.slice(0, 3).map(d => ({
-            id: `tx-${d.transactionId}`,
-            customerId: d.customerId,
-            riskScore: 85,
-            message: `Transaction declined: ${d.declineReason || 'High fraud probability'}`,
-            time: d.transactionDatetime ? new Date(d.transactionDatetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently',
-            status: 'High',
-        })),
-    ];
-
     const stats = [
         {
             title: 'Monitored Customers',
             value: totalCustomersCount ? totalCustomersCount.toLocaleString() : '0',
-            change: '+100% live',
+            change: 'Current portfolio',
             changeType: 'increase',
             icon: Users
         },
@@ -140,6 +119,8 @@ const Dashboard = () => {
 
     return (
         <div className="space-y-6">
+            {error && <p role="alert" className="p-3 text-red-700 bg-red-50 rounded-lg">{error}</p>}
+            <p className="text-xs text-slate-500">Last refreshed: {lastRefreshed.toLocaleTimeString()}</p>
             {/* Top Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
@@ -191,35 +172,10 @@ const Dashboard = () => {
                         onOpenTransactionModal={() => setIsTxModalOpen(true)}
                         onRefreshData={loadDashboardData}
                         highRiskCount={highRiskProfiles.length}
+                        customerCount={totalCustomersCount}
                     />
 
-                    {/* Live Microservice Gateway Status Card */}
-                    <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-3">
-                        <h4 className="text-sm font-bold text-gray-900 flex items-center justify-between">
-                            Connected APIs Status
-                            <span className="flex items-center gap-1 text-[11px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live
-                            </span>
-                        </h4>
-                        <div className="space-y-2 text-xs text-gray-600">
-                            <div className="flex items-center justify-between p-2 rounded-lg bg-gray-50">
-                                <span>API Gateway (Port 9090)</span>
-                                <span className="font-semibold text-emerald-700">ONLINE</span>
-                            </div>
-                            <div className="flex items-center justify-between p-2 rounded-lg bg-gray-50">
-                                <span>Transaction Service (Port 9091)</span>
-                                <span className="font-semibold text-emerald-700">ONLINE</span>
-                            </div>
-                            <div className="flex items-center justify-between p-2 rounded-lg bg-gray-50">
-                                <span>Risk Score Service (Port 9092)</span>
-                                <span className="font-semibold text-emerald-700">ONLINE</span>
-                            </div>
-                            <div className="flex items-center justify-between p-2 rounded-lg bg-gray-50">
-                                <span>MariaDB Database (Port 3306)</span>
-                                <span className="font-semibold text-emerald-700">CONNECTED</span>
-                            </div>
-                        </div>
-                    </div>
+                    <ServiceHealth />
                 </div>
             </div>
 

@@ -6,9 +6,12 @@ import org.springframework.stereotype.Component;
 public class RiskCategoryCalculator {
 
     public String categoryFromScore(int score){
+        return categoryFromScore(score,40,70);
+    }
 
-        if(score>=70) return "High";
-        if(score>=40) return "Medium";
+    public String categoryFromScore(int score,int mediumThreshold,int highThreshold){
+        if(score>=highThreshold) return "High";
+        if(score>=mediumThreshold) return "Medium";
         return "Low";
     }
 }

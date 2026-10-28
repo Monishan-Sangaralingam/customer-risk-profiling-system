@@ -51,6 +51,8 @@ public class TransactionService {
 
             // 3. Now call risk score service
             RiskResponseDTO risk = riskScoreClient.calculate(saved.getCustomerId());
+            saved.setRiskScore(risk.getScore());
+            saved.setRiskLevel(risk.getCategory());
 
             // 4. Decision logic
             if ("High".equalsIgnoreCase(risk.getCategory())) {
@@ -100,7 +102,9 @@ public class TransactionService {
                 .transactionStatus(ts.getTransactionStatus())
                 .declineReason(ts.getDeclineReason())
                 .transactionDatetime(ts.getTransactionDatetime())
-                .createdAt(LocalDateTime.now())
+                .createdAt(ts.getCreatedAt())
+                .riskScore(ts.getRiskScore())
+                .riskLevel(ts.getRiskLevel())
                 .build();
 
     }

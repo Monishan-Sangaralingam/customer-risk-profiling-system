@@ -2,82 +2,36 @@ import React, { useState, useEffect } from 'react';
 import { AlertTriangle, ChevronRight, Filter, Bell, CheckCircle2, ShieldAlert, RefreshCw, Eye } from 'lucide-react';
 import CustomerDetailModal from '../components/modals/CustomerDetailModal';
 import api from '../services/api';
+import { buildAlerts } from '../services/alerts';
 
 const Alerts = () => {
     const [activeTab, setActiveTab] = useState('All');
     const [alerts, setAlerts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [savingId, setSavingId] = useState(null);
     const [selectedCustomerId, setSelectedCustomerId] = useState(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
     const loadAlerts = async () => {
-        setLoading(true);
+        setLoading(true); setError('');
         try {
-            const [scoresRes, txsRes] = await Promise.allSettled([
-                api.getAllRiskScores(),
-                api.getAllTransactions(),
-            ]);
-
-            const scores = scoresRes.status === 'fulfilled' ? (scoresRes.value || []) : [];
-            const txs = txsRes.status === 'fulfilled' ? (txsRes.value || []) : [];
-
-            const highRisk = scores.filter(s => (s.category || '').toLowerCase() === 'high');
-            const mediumRisk = scores.filter(s => (s.category || '').toLowerCase() === 'medium');
-            const declinedTxs = txs.filter(t => t.transactionStatus === 'DECLINED');
-
-            const generatedAlerts = [
-                ...highRisk.map((h, i) => ({
-                    id: `risk-high-${h.customerId}`,
-                    customerId: h.customerId,
-                    customer: `Customer #${h.customerId}`,
-                    riskScore: h.score,
-                    title: `Critical Risk Escalation (Score: ${h.score}/100)`,
-                    desc: `Customer behavioral risk score exceeded high threshold (>=70). Requires transaction authorization hold.`,
-                    tags: ['Critical Band', 'High Velocity', 'Watchlist'],
-                    priority: 'Critical',
-                    time: h.updatedAt ? new Date(h.updatedAt).toLocaleString() : 'Recent',
-                    status: 'New',
-                })),
-                ...declinedTxs.map((d, i) => ({
-                    id: `tx-dec-${d.transactionId}`,
-                    customerId: d.customerId,
-                    customer: `Customer #${d.customerId}`,
-                    riskScore: 80,
-                    title: `Transaction Declined: #${d.transactionId} (LKR ${Number(d.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`,
-                    desc: `Automated rule decline triggered: ${d.declineReason || 'High fraud tendency'}. Channel: ${d.channel}, Device: ${d.deviceCode}`,
-                    tags: [d.channel, d.deviceCode, 'Declined'],
-                    priority: 'High',
-                    time: d.transactionDatetime ? new Date(d.transactionDatetime).toLocaleString() : 'Recent',
-                    status: 'Investigating',
-                })),
-                ...mediumRisk.map((m, i) => ({
-                    id: `risk-med-${m.customerId}`,
-                    customerId: m.customerId,
-                    customer: `Customer #${m.customerId}`,
-                    riskScore: m.score,
-                    title: `Medium Risk Advisory (Score: ${m.score}/100)`,
-                    desc: `Customer behavior showing increased activity velocity or new device usage. Recommend step-up 2FA.`,
-                    tags: ['Medium Band', '2FA Suggested'],
-                    priority: 'Medium',
-                    time: m.updatedAt ? new Date(m.updatedAt).toLocaleString() : 'Recent',
-                    status: 'New',
-                })),
-            ];
-
-            setAlerts(generatedAlerts);
-        } catch (err) {
-            console.error('Failed to load alerts:', err);
-        } finally {
-            setLoading(false);
-        }
+            const [scores, txs, settings, statuses] = await Promise.all([api.getAllRiskScores(), api.getAllTransactions(), api.getSettings(), api.getAlertStatuses()]);
+            setAlerts(buildAlerts(scores, txs, settings, statuses));
+        } catch (e) { setError(e.message); } finally { setLoading(false); }
     };
 
     useEffect(() => {
         loadAlerts();
     }, []);
 
-    const updateStatus = (alertId, newStatus) => {
-        setAlerts(prev => prev.map(a => a.id === alertId ? { ...a, status: newStatus } : a));
+    const updateStatus = async (alertId, newStatus) => {
+        setSavingId(alertId); setError('');
+        try {
+            const selected = alerts.find(item => item.id === alertId);
+            await api.updateAlertStatus(alertId, newStatus, selected.eventKey);
+            setAlerts(previous => previous.map(item => item.id === alertId ? { ...item, status: newStatus } : item));
+        } catch (e) { setError(e.message); } finally { setSavingId(null); }
     };
 
     const getPriorityBadge = (priority) => {
@@ -103,6 +57,7 @@ const Alerts = () => {
 
     return (
         <div className="space-y-6">
+            {error && <p role="alert" className="p-3 bg-red-50 text-red-700 rounded-lg">{error}</p>}
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
@@ -183,7 +138,7 @@ const Alerts = () => {
                                     <span className="font-semibold text-gray-800">{alert.customer}</span>
                                     <span className="text-gray-400">•</span>
                                     <span className={`font-bold ${alert.riskScore >= 70 ? 'text-red-600' : 'text-amber-600'}`}>
-                                        Risk Score: {alert.riskScore}/100
+                                        Risk Score: {alert.riskScore == null ? 'Unavailable' : `${alert.riskScore}/100`}
                                     </span>
                                 </div>
 
@@ -198,6 +153,7 @@ const Alerts = () => {
 
                                     {alert.status !== 'Resolved' ? (
                                         <button
+                                            disabled={savingId === alert.id}
                                             onClick={() => updateStatus(alert.id, 'Resolved')}
                                             className="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-lg border border-emerald-200 transition-colors"
                                         >

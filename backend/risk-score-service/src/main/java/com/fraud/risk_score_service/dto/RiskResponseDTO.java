@@ -18,5 +18,6 @@ public class RiskResponseDTO {
     private LocalDateTime calculatedAt;
 
     private List<String> reasons;
+    private String triggerType;
 
 }

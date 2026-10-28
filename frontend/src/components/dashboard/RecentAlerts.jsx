@@ -7,7 +7,7 @@ const RecentAlerts = ({ alerts = [], onSelectCustomer }) => {
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="p-5 border-b border-gray-200 flex justify-between items-center bg-gray-50/50">
                 <div>
-                    <h3 className="text-base font-bold text-gray-900">Recent High-Risk Alerts</h3>
+                    <h3 className="text-base font-bold text-gray-900">Recent Fraud Alerts</h3>
                     <p className="text-xs text-gray-500">Triggered by sudden velocity, unusual channels, or risk threshold breach</p>
                 </div>
                 <Link to="/alerts" className="text-xs text-blue-600 hover:text-blue-700 font-semibold">
@@ -18,7 +18,7 @@ const RecentAlerts = ({ alerts = [], onSelectCustomer }) => {
                 {alerts.length === 0 ? (
                     <div className="py-8 text-center text-gray-400 text-sm">
                         <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-500 mb-2 opacity-80" />
-                        No high-risk alerts currently pending. All profiles normal.
+                        No unresolved alerts match your alert settings.
                     </div>
                 ) : (
                     alerts.slice(0, 5).map((alert) => (
@@ -36,9 +36,9 @@ const RecentAlerts = ({ alerts = [], onSelectCustomer }) => {
                                         <span className="font-semibold text-sm text-gray-900">{alert.customerName || `Customer #${alert.customerId}`}</span>
                                         <span className="text-xs text-gray-400">ID: {alert.customerId}</span>
                                         <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                                            alert.riskScore >= 70 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                                            alert.priority === 'Critical' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
                                         }`}>
-                                            Risk: {alert.riskScore}
+                                            Risk: {alert.riskScore ?? 'Unavailable'}
                                         </span>
                                     </div>
                                     <p className="text-xs text-gray-600 mt-0.5">{alert.message}</p>

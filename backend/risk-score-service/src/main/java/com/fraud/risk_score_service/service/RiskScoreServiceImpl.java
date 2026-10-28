@@ -66,7 +66,7 @@ public class RiskScoreServiceImpl implements RiskScoreService {
 
     @Override
     public RiskResponseDTO calculateNow(Long customerId, String trigger){
-
+        var settings=transactionServiceClient.getSettings();
         FeatureDTO features = transactionServiceClient.getFeatures(customerId);
 
         if(features == null){
@@ -77,7 +77,12 @@ public class RiskScoreServiceImpl implements RiskScoreService {
         MlServiceClient.MlPredictResponse ml = null;
         try {
             ml = mlServiceClient.predict(features);
+            if (ml == null || ml.risk_score() == null || !Double.isFinite(ml.risk_score())
+                    || ml.risk_score() < 0 || ml.risk_score() > 100 || ml.error() != null) {
+                throw new IllegalStateException("ML prediction is unavailable or invalid");
+            }
         } catch (Exception e) {
+            if(!settings.fallbackEnabled()) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,"ML service unavailable and fallback is disabled");
             int calculatedScore = 20;
             if (features.getSpendVelocity7dVsPrev7d() != null && features.getSpendVelocity7dVsPrev7d() > 2.0) {
                 calculatedScore += 30;
@@ -99,15 +104,10 @@ public class RiskScoreServiceImpl implements RiskScoreService {
             ml = new MlServiceClient.MlPredictResponse((double) calculatedScore, cat, null);
         }
 
-        if (ml == null || ml.risk_score() == null) {
-            int fallbackScore = 25;
-            ml = new MlServiceClient.MlPredictResponse((double) fallbackScore, riskCategoryCalculator.categoryFromScore(fallbackScore), null);
-        }
-
         // assuming ML returns risk_score (0–100)
         int score = (int) Math.round(ml.risk_score());
 
-        String category = riskCategoryCalculator.categoryFromScore(score);
+        String category = riskCategoryCalculator.categoryFromScore(score,settings.mediumThreshold(),settings.highThreshold());
 
         //Read previous score (Optional)
         Optional<RiskScore> previous = riskScoreRepository.findByCustomerId(customerId);
@@ -167,6 +167,7 @@ public class RiskScoreServiceImpl implements RiskScoreService {
         response.setCategory(category);
         response.setCalculatedAt(history.getCalculatedAt());
         response.setReasons(reasons);
+        response.setTriggerType(history.getTrigger_type());
 
         return response;
 
@@ -185,7 +186,7 @@ public class RiskScoreServiceImpl implements RiskScoreService {
                 .score(rs.getScore())
                 .category(rs.getCategory())
                 .calculatedAt(rs.getUpdatedAt())
-                .reasons(null)
+                .reasons(riskHistoryRepository.findTop30ByCustomerIdOrderByCalculatedAtDesc(customerId).stream().findFirst().map(h->readReasons(h.getReasonsJson())).orElse(List.of()))
                 .build();
     }
 
@@ -200,7 +201,8 @@ public class RiskScoreServiceImpl implements RiskScoreService {
                     .score(h.getScore())
                     .category(h.getCategory())
                     .calculatedAt(h.getCalculatedAt())
-                    .reasons(null)
+                    .triggerType(h.getTrigger_type())
+                    .reasons(readReasons(h.getReasonsJson()))
                     .build());
         }
         return out;
@@ -209,5 +211,11 @@ public class RiskScoreServiceImpl implements RiskScoreService {
     @Override
     public List<RiskScore> getAll() {
         return riskScoreRepository.findAll();
+    }
+
+    private List<String> readReasons(String json) {
+        if(json==null)return List.of();
+        try { return objectMapper.readValue(json,new com.fasterxml.jackson.core.type.TypeReference<List<String>>(){}); }
+        catch(Exception e) { return List.of(); }
     }
 }

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ArrowRight, PlusCircle, RefreshCw, CheckCircle2 } from 'lucide-react';
 import api from '../../services/api';
 
-const QuickActions = ({ onOpenTransactionModal, onRefreshData, highRiskCount = 0 }) => {
+const QuickActions = ({ onOpenTransactionModal, onRefreshData, highRiskCount = 0, customerCount = 0 }) => {
     const [runningBatch, setRunningBatch] = useState(false);
     const [scanMessage, setScanMessage] = useState(null);
 
@@ -21,7 +21,7 @@ const QuickActions = ({ onOpenTransactionModal, onRefreshData, highRiskCount = 0
             if (onRefreshData) onRefreshData();
             setTimeout(() => setScanMessage(null), 4000);
         } catch (err) {
-            console.error('Batch scan error:', err);
+            setScanMessage('Scan failed: ' + err.message);
         } finally {
             setRunningBatch(false);
         }
@@ -44,11 +44,11 @@ const QuickActions = ({ onOpenTransactionModal, onRefreshData, highRiskCount = 0
 
                 <div className="flex items-center gap-4 p-3 bg-emerald-50/60 rounded-xl border border-emerald-100">
                     <div className="w-11 h-11 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">
-                        96.8%
+                        {customerCount}
                     </div>
                     <div>
-                        <p className="text-sm font-semibold text-gray-900">Model Precision</p>
-                        <p className="text-xs text-gray-500">Behavioral Anomaly Engine</p>
+                        <p className="text-sm font-semibold text-gray-900">Customer profiles</p>
+                        <p className="text-xs text-gray-500">Available for analysis</p>
                     </div>
                 </div>
 

@@ -2,8 +2,10 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Users, ShieldAlert, Bell, Settings, LogOut, Landmark } from 'lucide-react';
 import clsx from 'clsx';
+import api from '../../services/api';
+import { getSession, clearSession } from '../../services/session';
 
-const Sidebar = () => {
+const Sidebar = ({ onNavigate }) => {
     const navItems = [
         { name: 'Dashboard', path: '/', icon: LayoutDashboard },
         { name: 'Customer Profiles', path: '/customers', icon: Users },
@@ -14,30 +16,31 @@ const Sidebar = () => {
 
     // Read active user session
     let currentUser = {
-        name: 'Sunil Jayawardena',
+        name: 'Risk Analyst',
         role: 'Lead Fraud Analyst',
-        email: 'fraud.analyst@ceylonbank.lk',
+        email: '',
         bankCode: 'CEYLONBANK',
         bankName: 'CeylonBank PLC',
     };
 
     try {
-        const stored = localStorage.getItem('lankaguard_user') || localStorage.getItem('fraudguard_user');
+        const stored = getSession()?.user;
         if (stored) {
-            currentUser = { ...currentUser, ...JSON.parse(stored) };
+            currentUser = { ...currentUser, ...stored };
         }
     } catch {
         // use fallback defaults
     }
 
-    const handleSignOut = () => {
-        localStorage.removeItem('lankaguard_user');
-        localStorage.removeItem('fraudguard_user');
-        window.location.href = '/login';
+    const handleSignOut = async () => {
+        try { await api.logout(); }
+        catch { alert('Unable to sign out on the server. Check your connection and try again.'); return; }
+        clearSession();
+        window.location.assign('/login');
     };
 
     return (
-        <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-full text-slate-200">
+        <aside className="w-64 shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col h-full text-slate-200">
             {/* CeylonBank Branding */}
             <div className="p-5 border-b border-slate-800">
                 <div className="flex items-center gap-3">
@@ -68,6 +71,7 @@ const Sidebar = () => {
                     <NavLink
                         key={item.path}
                         to={item.path}
+                        onClick={onNavigate}
                         className={({ isActive }) =>
                             clsx(
                                 'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',

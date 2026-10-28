@@ -64,6 +64,9 @@ public class Transaction {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    private Integer riskScore;
+    private String riskLevel;
+
     @PrePersist  //JPA lifecycle callback.
     public void prePersist() {
         if (createdAt == null) createdAt = LocalDateTime.now();

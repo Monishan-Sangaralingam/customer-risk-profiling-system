@@ -3,8 +3,10 @@ import { ShieldCheck, Brain, Database, Activity, Lock, TrendingUp, Search, Refre
 import api from '../services/api';
 
 const RiskAnalysis = () => {
-    const [selectedCustomerId, setSelectedCustomerId] = useState('101');
+    const [selectedCustomerId, setSelectedCustomerId] = useState('');
     const [analyzing, setAnalyzing] = useState(false);
+    const [settings, setSettings] = useState({ mediumThreshold: 40, highThreshold: 70 });
+    const [knownCustomers, setKnownCustomers] = useState([]);
     const [riskResult, setRiskResult] = useState(null);
     const [features, setFeatures] = useState(null);
     const [history, setHistory] = useState([]);
@@ -20,13 +22,14 @@ const RiskAnalysis = () => {
 
     useEffect(() => {
         loadPortfolioSummary();
-        runAnalysis('101');
+        api.getSettings().then(setSettings).catch(e => setError(e.message));
     }, []);
 
     const loadPortfolioSummary = async () => {
         try {
             const list = await api.getAllRiskScores();
             if (Array.isArray(list)) {
+                setKnownCustomers(list.map(item => item.customerId));
                 const low = list.filter(r => (r.category || '').toLowerCase() === 'low').length;
                 const medium = list.filter(r => (r.category || '').toLowerCase() === 'medium').length;
                 const high = list.filter(r => (r.category || '').toLowerCase() === 'high').length;
@@ -49,20 +52,10 @@ const RiskAnalysis = () => {
         setAnalyzing(true);
         setError(null);
         try {
-            const [calcRes, featRes, histRes] = await Promise.allSettled([
-                api.calculateRisk(cid, 'ANALYST_WORKBENCH'),
-                api.getCustomerFeatures(cid),
-                api.getCustomerRiskHistory(cid),
-            ]);
-
-            if (calcRes.status === 'fulfilled') {
-                setRiskResult(calcRes.value);
-            } else {
-                throw new Error(calcRes.reason?.message || 'Failed to calculate risk');
-            }
-
-            if (featRes.status === 'fulfilled') setFeatures(featRes.value);
-            if (histRes.status === 'fulfilled') setHistory(histRes.value || []);
+            const result = await api.calculateRisk(cid, 'ANALYST_WORKBENCH');
+            const [snapshot, entries] = await Promise.all([api.getCustomerFeatures(cid), api.getCustomerRiskHistory(cid)]);
+            setRiskResult(result); setFeatures(snapshot); setHistory(entries);
+            await loadPortfolioSummary();
         } catch (err) {
             setError(err.message || 'Error executing risk profiling');
         } finally {
@@ -71,14 +64,14 @@ const RiskAnalysis = () => {
     };
 
     const getScoreColor = (score) => {
-        if (score >= 70) return 'text-red-600';
-        if (score >= 40) return 'text-amber-500';
+        if (score >= settings.highThreshold) return 'text-red-600';
+        if (score >= settings.mediumThreshold) return 'text-amber-500';
         return 'text-emerald-600';
     };
 
     const getScoreBg = (score) => {
-        if (score >= 70) return 'bg-red-500';
-        if (score >= 40) return 'bg-amber-500';
+        if (score >= settings.highThreshold) return 'bg-red-500';
+        if (score >= settings.mediumThreshold) return 'bg-amber-500';
         return 'bg-emerald-500';
     };
 
@@ -252,7 +245,7 @@ const RiskAnalysis = () => {
                                 {/* Quick Switch to Other Real Customers */}
                                 <div className="pt-3 border-t">
                                     <span className="text-xs font-semibold text-gray-500 mr-2">Try Customer:</span>
-                                    {['101', '102', '105', '106', '107', '1'].map((id) => (
+                                    {knownCustomers.slice(0, 6).map((id) => (
                                         <button
                                             key={id}
                                             onClick={() => {
@@ -275,13 +268,14 @@ const RiskAnalysis = () => {
             <section>
                 <div className="text-center mb-6">
                     <h2 className="text-xl font-bold text-gray-800">Live Portfolio Risk Segmentation</h2>
-                    <p className="text-xs text-gray-500">Real-time status calculated from MariaDB customer score tables</p>
+                    {riskResult && <p className="text-xs text-slate-500">{history.length} recent calculations recorded for customer #{riskResult.customerId}</p>}
+                    <p className="text-xs text-gray-500">Current risk bands from the application database</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm text-center">
                         <div className="flex justify-between items-start mb-2">
                             <h3 className="text-base font-bold text-gray-900">Low Risk</h3>
-                            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Score 0 - 39</span>
+                            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Score 0 – {settings.mediumThreshold - 1}</span>
                         </div>
                         <h4 className="text-4xl font-extrabold text-emerald-600 mb-1">{riskSummary.low}</h4>
                         <p className="text-xs text-gray-400">Normal processing / No intervention</p>
@@ -293,7 +287,7 @@ const RiskAnalysis = () => {
                     <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm text-center">
                         <div className="flex justify-between items-start mb-2">
                             <h3 className="text-base font-bold text-gray-900">Medium Risk</h3>
-                            <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Score 40 - 69</span>
+                            <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Score {settings.mediumThreshold} – {settings.highThreshold - 1}</span>
                         </div>
                         <h4 className="text-4xl font-extrabold text-amber-500 mb-1">{riskSummary.medium}</h4>
                         <p className="text-xs text-gray-400">Step-up Authentication / Watchlist</p>
@@ -305,7 +299,7 @@ const RiskAnalysis = () => {
                     <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm text-center">
                         <div className="flex justify-between items-start mb-2">
                             <h3 className="text-base font-bold text-gray-900">High Risk</h3>
-                            <span className="text-xs font-semibold text-red-700 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">Score 70 - 100</span>
+                            <span className="text-xs font-semibold text-red-700 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">Score {settings.highThreshold} – 100</span>
                         </div>
                         <h4 className="text-4xl font-extrabold text-red-600 mb-1">{riskSummary.high}</h4>
                         <p className="text-xs text-gray-400">Decline / Fraud Analyst Review</p>
@@ -375,7 +369,7 @@ const RiskAnalysis = () => {
                             </li>
                             <li className="flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-                                Full Audit Trail in MariaDB
+                                Persisted risk calculation history
                             </li>
                         </ul>
                     </div>

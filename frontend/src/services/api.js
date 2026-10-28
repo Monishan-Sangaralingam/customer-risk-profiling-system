@@ -1,3 +1,4 @@
+import { getSession, clearSession } from './session';
 // Central API service for Customer Risk Profiling System
 const API_BASE = '/api';
 const transactionOrigin = (import.meta.env.VITE_TRANSACTION_SERVICE_URL || '').replace(/\/+$/, '');
@@ -15,6 +16,8 @@ async function fetchJson(endpoint, options = {}) {
     const defaultHeaders = {
         'Content-Type': 'application/json',
     };
+    const token = getSession()?.token;
+    if (token) defaultHeaders.Authorization = `Bearer ${token}`;
 
     try {
         const response = await fetch(url, {
@@ -29,12 +32,18 @@ async function fetchJson(endpoint, options = {}) {
             let errorMsg = `HTTP ${response.status}: ${response.statusText}`;
             try {
                 const errBody = await response.json();
-                if (errBody.message) errorMsg = errBody.message;
+                if (errBody.message || errBody.detail) errorMsg = errBody.message || errBody.detail;
             } catch {
                 // Ignore json parse error for non-json responses
             }
+            if (response.status === 401 && !['/auth/login', '/auth/register'].includes(endpoint)) {
+                clearSession();
+                window.location.assign('/login');
+            }
             throw new Error(errorMsg);
         }
+
+        if (response.status === 204) return null;
 
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
@@ -48,6 +57,18 @@ async function fetchJson(endpoint, options = {}) {
 }
 
 export const api = {
+    login: (email, password) => fetchJson('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+    register: (name, email, password) => fetchJson('/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password }) }),
+    getProfile: () => fetchJson('/auth/me'),
+    logout: () => fetchJson('/auth/logout', { method: 'POST' }),
+    changePassword: (currentPassword, newPassword) => fetchJson('/auth/password', { method: 'PUT', body: JSON.stringify({ currentPassword, newPassword }) }),
+    getSettings: () => fetchJson('/settings'),
+    saveSettings: settings => fetchJson('/settings', { method: 'PUT', body: JSON.stringify(settings) }),
+    getAlertStatuses: () => fetchJson('/alert-status'),
+    updateAlertStatus: (id, status, eventKey) => fetchJson(`/alert-status/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ status, eventKey }) }),
+    getModelStatus: () => fetchJson('/risk/system/status'),
+    getSystemInfo: () => fetchJson('/system/info'),
+    serviceUrls: { transactions: transactionOrigin || window.location.origin, risk: riskOrigin || window.location.origin },
     // ---------------------------------------------------------------------------
     // Risk Score Service Endpoints
     // ---------------------------------------------------------------------------
@@ -111,18 +132,16 @@ export const api = {
     // System Health Checks
     // ---------------------------------------------------------------------------
     async getGatewayHealth() {
-        try {
-            // Render calls the services directly; local development uses the gateway.
-            const origins = [...new Set([transactionOrigin, riskOrigin])];
-            const results = await Promise.all(origins.map(async origin => {
-                const res = await fetch(`${origin}/actuator/health`);
-                if (!res.ok) throw new Error('Service health check failed');
-                return res.json();
-            }));
-            return { status: results.every(result => result.status === 'UP') ? 'UP' : 'DOWN' };
-        } catch {
-            return { status: 'DOWN' };
-        }
+        const services = await Promise.all([
+            ['Transaction service', transactionOrigin], ['Risk score service', riskOrigin],
+        ].map(async ([name, origin]) => {
+            try {
+                const response = await fetch(`${origin}/actuator/health`, { signal: AbortSignal.timeout(15000) });
+                const result = await response.json();
+                return { name, status: response.ok && result.status === 'UP' ? 'UP' : 'DOWN' };
+            } catch { return { name, status: 'DOWN' }; }
+        }));
+        return { status: services.every(service => service.status === 'UP') ? 'UP' : 'DOWN', services };
     },
 };
 

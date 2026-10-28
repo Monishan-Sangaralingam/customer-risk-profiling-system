@@ -7,13 +7,24 @@ import Alerts from './pages/Alerts';
 import Settings from './pages/Settings';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
+import { useEffect, useState } from 'react';
+import { getSession } from './services/session';
+import api from './services/api';
 
 // ProtectedRoute checks active session in localStorage
 const ProtectedRoute = ({ children }) => {
-  const user = localStorage.getItem('lankaguard_user') || localStorage.getItem('fraudguard_user');
-  if (!user) {
+  const [status, setStatus] = useState(getSession() ? 'checking' : 'signed-out');
+  useEffect(() => {
+    if (!getSession()) return;
+    let active = true;
+    api.getProfile().then(() => { if (active) setStatus('ready'); }).catch(() => { if (active) setStatus('unavailable'); });
+    return () => { active = false; };
+  }, []);
+  if (status === 'signed-out') {
     return <Navigate to="/login" replace />;
   }
+  if (status === 'checking') return <p className="p-6" role="status">Checking your session…</p>;
+  if (status === 'unavailable') return <div className="p-6"><p role="alert">Unable to verify your session. The service may be waking up.</p><button className="underline mt-3" onClick={() => window.location.reload()}>Try again</button></div>;
   return children;
 };
 
